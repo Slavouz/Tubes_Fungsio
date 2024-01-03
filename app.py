@@ -1,60 +1,60 @@
 import sqlite3
 import tkinter as tk
 
-def todo_script():
+def get_connection():
+    return sqlite3.connect("todo.db")
 
-    def get_tasks():
-        con = sqlite3.connect("todo.db")
-        cur = con.cursor()
-        # Fungsi untuk mendapatkan daftar tugas
-        return cur.execute("SELECT * FROM todolist").fetchall()    
-            
-    task_list = get_tasks()
+def execute_sql(sql, parameters=None):
+    connection = sqlite3.connect("todo.db")
+    with connection:
+        cursor = connection.cursor()
+        cursor.execute(sql, parameters)
+        return cursor.fetchall()
 
-    return list(task_list)
-
-def add_task(title, desc, add_gui, todo_app):
-    # Fungsi untuk menambahkan tugas ke daftar
-    con = sqlite3.connect("todo.db")
-    cur = con.cursor()    
-    cur.execute("INSERT INTO todolist (title, desc) VALUES (?, ?)", (title, desc))
-    con.commit()
-    # Refresh Table
-    data = todo_script()
-    todo_app.table.delete(*todo_app.table.get_children())
-    for row in data[0:]:
-        todo_app.table.insert('', tk.END, values=row)        
-    # Exit
-    add_gui.destroy()
-    
-def delete_task(index, del_gui, todo_app):
-    # Fungsi untuk menghapus tugas dari daftar berdasarkan indeks
-    con = sqlite3.connect("todo.db")
-    cur = con.cursor()    
-    cur.execute("DELETE FROM todolist WHERE id = ?", (index,))
-    con.commit()
-    # Refresh Table
-    data = todo_script()
+def refresh_table(todo_app):
+    data = list(todo_script())
     todo_app.table.delete(*todo_app.table.get_children())
     for row in data[0:]:
         todo_app.table.insert('', tk.END, values=row)
+
+def todo_script():
+
+    def get_tasks():
+        with get_connection() as db:
+            return db.execute("SELECT * FROM todolist").fetchall()
+            
+    # task_list = get_tasks()
+
+    return get_tasks()
+
+def add_task(title, desc, add_gui, todo_app):        
+    execute_sql("INSERT INTO todolist (title, desc) VALUES (?, ?)", (title, desc))    
+    refresh_table(todo_app)
+    # Exit
+    add_gui.destroy()
+    
+def delete_task(index, del_gui, todo_app):    
+    print("Deleting task ", index)
+    try:
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM todolist WHERE id = ?", (index,))
+            conn.commit()
+    except sqlite3.Error as e:
+        print("Error deleting task: ", e)
+    # Refresh Table
+    refresh_table(todo_app)
     # Exit
     del_gui.destroy()
     
-def update_task(index, title, desc, edit_gui, todo_app):
-    # Fungsi untuk memperbarui tugas dalam daftar berdasarkan indeks
-    con = sqlite3.connect("todo.db")
-    cur = con.cursor()        
-    cur.execute("""
+def update_task(index, title, desc, edit_gui, todo_app):    
+    execute_sql("""
         UPDATE todolist
         SET title = ?, desc = ?
         WHERE id = ?
     """, (title, desc, index))
-    con.commit()
+    
     # Refresh Table
-    data = todo_script()
-    todo_app.table.delete(*todo_app.table.get_children())
-    for row in data[0:]:
-        todo_app.table.insert('', tk.END, values=row)        
+    refresh_table(todo_app)
     # Exit
     edit_gui.destroy()

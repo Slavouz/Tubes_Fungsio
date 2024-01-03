@@ -95,7 +95,7 @@ class TodoApp(ttk.Frame):
             tk.Button(del_gui, text="Ok", command=del_gui.destroy).pack(pady=8)
         else:            
             selected_item = self.table.focus()
-            index = self.table.index(selected_item)
+            index = self.table.item(selected_item)["values"][0]
             del_gui.title("Confirmation")
 
             text_label = tk.Label(del_gui, text="Are you sure do you want to delete this task?")
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     root.title('Todo-List App')
 
     tk.Label(root, text="To-Do List App", font=("Arial", 24, "bold")).pack()
-    data = todo_script()
+    data = list(todo_script())
 
     app = TodoApp(root, data)    
     root.mainloop()
